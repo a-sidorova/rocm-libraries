@@ -1354,6 +1354,66 @@ inline flatbuffers::FlatBufferBuilder
     return builder;
 }
 
+inline flatbuffers::FlatBufferBuilder
+    createValidBlockScaleQuantizeGraph(const std::vector<int64_t>& xDims = {32, 128},
+                                       const std::vector<int64_t>& xStrides = {128, 1},
+                                       const std::vector<int64_t>& yDims = {32, 128},
+                                       const std::vector<int64_t>& yStrides = {128, 1},
+                                       const std::vector<int64_t>& scaleDims = {32, 16},
+                                       const std::vector<int64_t>& scaleStrides = {16, 1},
+                                       int32_t blockSize = 8,
+                                       int64_t axis = 1,
+                                       bool transpose = false,
+                                       hipdnn_data_sdk::data_objects::DataType inputDataType
+                                       = hipdnn_data_sdk::data_objects::DataType::FLOAT,
+                                       hipdnn_data_sdk::data_objects::DataType outputDataType
+                                       = hipdnn_data_sdk::data_objects::DataType::FP8_E4M3)
+{
+    flatbuffers::FlatBufferBuilder builder;
+    std::vector<::flatbuffers::Offset<hipdnn_data_sdk::data_objects::TensorAttributes>>
+        tensorAttributes;
+
+    tensorAttributes.push_back(hipdnn_data_sdk::data_objects::CreateTensorAttributesDirect(
+        builder, 1, "X", inputDataType, &xStrides, &xDims));
+    tensorAttributes.push_back(hipdnn_data_sdk::data_objects::CreateTensorAttributesDirect(
+        builder, 2, "Y", outputDataType, &yStrides, &yDims));
+    tensorAttributes.push_back(hipdnn_data_sdk::data_objects::CreateTensorAttributesDirect(
+        builder,
+        3,
+        "Scale",
+        hipdnn_data_sdk::data_objects::DataType::FP8_E8M0,
+        &scaleStrides,
+        &scaleDims));
+
+    auto bqAttributes = hipdnn_data_sdk::data_objects::CreateBlockScaleQuantizeAttributes(
+        builder,
+        1, // X tensor uid
+        2, // Y tensor uid
+        3, // Scale tensor uid
+        ::flatbuffers::Optional<int32_t>(blockSize),
+        ::flatbuffers::Optional<int64_t>(axis),
+        transpose);
+
+    std::vector<::flatbuffers::Offset<hipdnn_data_sdk::data_objects::Node>> nodes;
+    nodes.push_back(hipdnn_data_sdk::data_objects::CreateNodeDirect(
+        builder,
+        "block_scale_quantize",
+        hipdnn_data_sdk::data_objects::DataType::FLOAT,
+        hipdnn_data_sdk::data_objects::NodeAttributes::BlockScaleQuantizeAttributes,
+        bqAttributes.Union()));
+
+    auto graphOffset = hipdnn_data_sdk::data_objects::CreateGraphDirect(
+        builder,
+        "test",
+        inputDataType,
+        outputDataType,
+        hipdnn_data_sdk::data_objects::DataType::FP8_E8M0,
+        &tensorAttributes,
+        &nodes);
+    builder.Finish(graphOffset);
+    return builder;
+}
+
 inline flatbuffers::FlatBufferBuilder createValidEngineDetails(int64_t engineId)
 {
     flatbuffers::FlatBufferBuilder builder;

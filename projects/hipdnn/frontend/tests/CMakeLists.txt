@@ -24,6 +24,8 @@ add_executable(
     TestBatchnormInferenceNode.cpp
     TestBatchnormInferenceNodeVarianceExt.cpp
     TestBatchnormNode.cpp
+    TestBlockScaleQuantizeAttributes.cpp
+    TestBlockScaleQuantizeNode.cpp
     TestConvolutionDgradAttributes.cpp
     TestConvolutionFwdAttributes.cpp
     TestConvolutionDgradNode.cpp

@@ -6,6 +6,7 @@
 #include <hipdnn_frontend/attributes/BatchnormAttributes.hpp>
 #include <hipdnn_frontend/attributes/BatchnormInferenceAttributes.hpp>
 #include <hipdnn_frontend/attributes/BatchnormInferenceAttributesVarianceExt.hpp>
+#include <hipdnn_frontend/attributes/BlockScaleQuantizeAttributes.hpp>
 #include <hipdnn_frontend/attributes/ConvolutionDgradAttributes.hpp>
 #include <hipdnn_frontend/attributes/ConvolutionFpropAttributes.hpp>
 #include <hipdnn_frontend/attributes/ConvolutionWgradAttributes.hpp>
@@ -18,6 +19,7 @@
 #include <hipdnn_frontend/node/BatchnormInferenceNode.hpp>
 #include <hipdnn_frontend/node/BatchnormInferenceNodeVarianceExt.hpp>
 #include <hipdnn_frontend/node/BatchnormNode.hpp>
+#include <hipdnn_frontend/node/BlockScaleQuantizeNode.hpp>
 #include <hipdnn_frontend/node/ConvolutionDgradNode.hpp>
 #include <hipdnn_frontend/node/ConvolutionFpropNode.hpp>
 #include <hipdnn_frontend/node/ConvolutionWgradNode.hpp>
@@ -976,6 +978,32 @@ public:
             std::make_shared<MatmulNode>(std::move(attributes), graph_attributes));
 
         return c;
+    }
+
+    std::array<std::shared_ptr<TensorAttributes>, 2>
+        block_scale_quantize(std::shared_ptr<TensorAttributes> x,
+                             BlockScaleQuantizeAttributes attributes)
+    {
+        if(attributes.get_name().empty())
+        {
+            attributes.set_name("BlockScaleQuantize_" + std::to_string(_sub_nodes.size()));
+        }
+        if(x->get_name().empty())
+        {
+            x->set_name(attributes.get_name() + "::X");
+        }
+
+        auto y = outputTensor(attributes.get_name() + "::Y");
+        auto scale = outputTensor(attributes.get_name() + "::SCALE");
+
+        attributes.set_x(std::move(x));
+        attributes.set_y(y);
+        attributes.set_scale(scale);
+
+        _sub_nodes.emplace_back(
+            std::make_shared<BlockScaleQuantizeNode>(std::move(attributes), graph_attributes));
+
+        return {y, scale};
     }
 
     // NOLINTBEGIN(readability-identifier-naming)
